@@ -1,16 +1,13 @@
 import socket
 from log_message import LogMessage
-import pickle
 import sys
 import zlib
 
 def send_log_udp(log_message):
-    object_bytes = pickle.dumps(log_message)
-    length_bytes = len(object_bytes).to_bytes(2, 'little')
-    crc_bytes = zlib.crc32(object_bytes).to_bytes(4, 'little')
-    header_bytes = bytes([0xd7]) + length_bytes + crc_bytes
+    # Message is encoded into bytes
+    object_bytes = LogMessage.to_bytes(log_message)
     
-    message_bytes = header_bytes + object_bytes
+    final_bytes = LogMessage.add_header(object_bytes)
 
     # Create a UDP socket
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -20,7 +17,7 @@ def send_log_udp(log_message):
         server_address = ('localhost', 12345)
 
         # Send the serialized message to the server - already in bytes
-        client_socket.sendto(message_bytes, server_address)
+        client_socket.sendto(final_bytes, server_address)
 
         # Receive the response from the server
         modified_message, _ = client_socket.recvfrom(1024)

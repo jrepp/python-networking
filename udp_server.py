@@ -1,5 +1,5 @@
 import socket
-import pickle
+import json
 from log_message import LogMessage
 
 def udp_server():
@@ -18,12 +18,15 @@ def udp_server():
 
         # Deserialize the received data
         try:
-            received_log_message = pickle.loads(data)
+            received_log_message = LogMessage.from_bytes_with_header(data)
             print(f"Received LogMessage from {client_address}: {received_log_message}")
             # Process the received LogMessage (modify or respond as needed)
             response_message = f"Server received: {received_log_message.message}"
-        except pickle.UnpicklingError as e:
-            print(f"Failed to deserialize the received data: {e}")
+        except AttributeError as e_attr:
+            print(f"AttributeError: {e_attr}")
+            response_message = "Failed to call from_bytes_with_header on data"
+        except json.JSONDecodeError as e_json:
+            print(f"Failed to deserialize the received JSON data: {e_json}")
             response_message = "Failed to process the received LogMessage"
         
         # Send the response without encoding to bytes

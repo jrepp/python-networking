@@ -1,51 +1,55 @@
 import struct
-import pickle
+import json
 import zlib
 from datetime import datetime
 
 class LogMessage:
     def __init__(self, header, message, level, file, line):
         self.timestamp = datetime.now()
-        self.header = header
+        self.header = header #remove header fields
         self.message = message
         self.level = level
         self.file = file
         self.line = line
 
     def to_bytes(self):
-        return pickle.dumps(self)
-
+        log_dict = {
+            "timestamp": self.timestamp.isoformat(),
+            "header": self.header,
+            "message": self.message,
+            "level": self.level,
+            "file": self.file,
+            "line": self.line
+        }
+        return json.dumps(log_dict).encode("utf-8")
+    
     @classmethod
     def from_bytes(cls, byte_data):
-        return pickle.loads(byte_data)
+        log_dict = json.loads(byte_data.decode("utf-8"))
+        timestamp = datetime.fromisoformat(log_dict["timestamp"])
+        return cls(log_dict["header"], log_dict["message"], log_dict["level"], log_dict["file"], log_dict["line"])
 
-    def add_header(self, new_header_type):
-        # Add or update the header type
-        self.header_type = new_header_type
-
-    def to_bytes_with_header(self):
-        # Serialize the object
-        serialized_data = self.to_bytes()
-
+    def add_header(serialized_data):
         # Calculate CRC32 for serialized data
         crc_value = zlib.crc32(serialized_data)
 
+        length_bytes = len(serialized_data).to_bytes(2, 'little')
+        crc_bytes = crc_value.to_bytes(4, 'little')
+        header_bytes = bytes([0xd7]) + length_bytes + crc_bytes
         # Create a new structure with type + length + CRC + serialized data
-        header_type_bytes = struct.pack("!H", self.header_type)
-        length_bytes = struct.pack("!H", len(serialized_data))
-        crc_bytes = struct.pack("!I", crc_value)
+        # length_bytes = json.dumps(len(serialized_data)).encode("utf-8")
+        # crc_bytes = json.dumps(crc_value).encode("utf-8")
 
-        return header_type_bytes + length_bytes + crc_bytes + serialized_data
+        return header_bytes + serialized_data
 
     @classmethod
     def from_bytes_with_header(cls, byte_data_with_header):
-        # Extract header type, length, and CRC
-        header_type = struct.unpack("!H", byte_data_with_header[:2])[0]
-        length = struct.unpack("!H", byte_data_with_header[2:4])[0]
-        crc = struct.unpack("!I", byte_data_with_header[4:8])[0]
+        # Extract length and CRC THIS IS WHERE THE ERROR IS
+        length = int.from_bytes(byte_data_with_header[1:3], 'little')
+        crc = int.from_bytes(byte_data_with_header[3:7], 'little')
 
         # Extract serialized data
-        serialized_data = byte_data_with_header[8:]
+        serialized_data = byte_data_with_header[7:]
 
         # Verify CRC
         calculated_crc = zlib.crc32(serialized_data)
@@ -54,9 +58,6 @@ class LogMessage:
 
         # Deserialize the object
         log_message = cls.from_bytes(serialized_data)
-
-        # Update the header type
-        log_message.add_header(header_type)
 
         return log_message
 
