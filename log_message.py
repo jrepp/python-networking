@@ -21,6 +21,9 @@ class LogMessage:
             "file": self.file,
             "line": self.line
         }
+    @classmethod
+    def from_dict(cls, log_dict):
+        return cls(log_dict["header"], log_dict["message"], log_dict["level"], log_dict["file"], log_dict["line"])
 
     def to_json(self):
         return json.dumps(self.to_dict()).encode("utf-8")
@@ -29,7 +32,7 @@ class LogMessage:
     def from_bytes(cls, byte_data):
         log_dict = json.loads(byte_data.decode("utf-8"))
         timestamp = datetime.fromisoformat(log_dict["timestamp"])
-        return cls(log_dict["header"], log_dict["message"], log_dict["level"], log_dict["file"], log_dict["line"])
+        return LogMessage.from_dict(cls, log_dict)
 
     def add_header(serialized_data):
         # Calculate CRC32 for serialized data

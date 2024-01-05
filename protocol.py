@@ -13,11 +13,10 @@ ENCODING_PICKLE = 0xd7
 ENCODING_JSON = 0xd8
 ENCODING_CBOR = 0xd9
 
-
 DECODERS = {
     ENCODING_PICKLE: lambda m: pickle.loads(m),
-    ENCODING_JSON: lambda m: json.loads(m),
-    ENCODING_CBOR: lambda m: cbor2.loads(m),
+    ENCODING_JSON: lambda m: LogMessage.from_dict(json.loads(m)),
+    ENCODING_CBOR: lambda m: LogMessage.from_dict(cbor2.loads(m)),
 }
 
 def encode_with_header(type_id, object_bytes):
