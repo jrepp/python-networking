@@ -12,8 +12,8 @@ class LogMessage:
         self.file = file
         self.line = line
 
-    def to_bytes(self):
-        log_dict = {
+    def to_dict(self):
+        return {
             "timestamp": self.timestamp.isoformat(),
             "header": self.header,
             "message": self.message,
@@ -21,7 +21,9 @@ class LogMessage:
             "file": self.file,
             "line": self.line
         }
-        return json.dumps(log_dict).encode("utf-8")
+
+    def to_json(self):
+        return json.dumps(self.to_dict()).encode("utf-8")
     
     @classmethod
     def from_bytes(cls, byte_data):
